@@ -1,91 +1,96 @@
 package flashcards;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Scanner;
 
 public class Main {
+  public static void main(String[] args) {
+    playGame();
+  }
 
-    public static void main(String[] args) {
-        int numberOfCards = chooseNumberOfCards();
-        Card[] cards = createCardArray(numberOfCards);
-        playGame(cards);
-    }
+  static void playGame() {
+    int numberOfCards = chooseNumberOfCards();
+    LinkedHashMap<String, String> cards = createCardMap(numberOfCards);
+    askForDefinition(cards);
+  }
 
-    static int chooseNumberOfCards() {
-        Scanner scanner = new Scanner(System.in);
-        System.out.println("Input the number of cards:");
-        while (scanner.hasNext()) {
-            if (scanner.hasNextInt()) {
-                int input = scanner.nextInt();
-                if (input > 0 && input < 10) {
-                    return input;
-                }
-            } else {
-                scanner.next();
-            }
-            System.out.println("Please input the number of cards from 1 to 10:");
+  static int chooseNumberOfCards() {
+    Scanner scanner = new Scanner(System.in);
+    System.out.println("Input the number of cards:");
+    while (scanner.hasNext()) {
+      if (scanner.hasNextInt()) {
+        int input = scanner.nextInt();
+        if (input > 0 && input < 10) {
+          return input;
         }
-        return -1;
+      } else {
+        scanner.next();
+      }
+      System.out.println("Please input the number of cards from 1 to 10:");
     }
+    return -1;
+  }
 
-    static Card[] createCardArray(int numberOfCards) {
-        int cardCount = 1;
-        Card[] cards = new Card[numberOfCards];
-        for (int i = 0; i < numberOfCards; i++) {
-            cards[i] = createCard(cardCount);
-            cardCount++;
-        }
-        return cards;
-    }
+  static LinkedHashMap<String, String> createCardMap(int numberOfCards) {
+    int cardCount = 1;
+    LinkedHashMap<String, String> cards = new LinkedHashMap<>();
 
-    static Card createCard(int cardCount) {
-        Scanner scanner = new Scanner(System.in);
-        System.out.println("The card #" + cardCount + ":");
-        String term = scanner.nextLine();
-        System.out.println("The definition of the card #" + cardCount + ":");
-        String definition = scanner.nextLine();
-        return new Card(term, definition);
-    }
+    for (int i = 0; i < numberOfCards; i++) {
+      Scanner scanner = new Scanner(System.in);
+      String term = "";
+      String definition = "";
 
-    static class Card {
-        String term;
-        String definition;
-
-        Card(String term, String definition) {
-            this.term = term;
-            this.definition = definition;
-        }
-
-        public String getTerm() {
-            return term;
-        }
-
-        public String getDefinition() {
-            return definition;
-        }
-        public String toString() {
-            return term + ":" + definition;
-        }
-    }
-
-    static void playGame(Card[] cards) {
-        for (Card card : cards) {
-            String answer = askForDefinition(card);
-            printResult(card.getDefinition(), answer);
-        }
-    }
-
-    static String askForDefinition(Card card) {
-            System.out.println("Print the definition of");
-            System.out.println("\"" + card.getTerm() + "\":");
-            String answer = new Scanner(System.in).nextLine();;
-        return answer;
-    }
-
-    static void printResult(String definition, String answer) {
-        if (answer.equals(definition)) {
-            System.out.printf("Correct answer.");
+      System.out.println("The card #" + cardCount + ":");
+      while (scanner.hasNext()) {
+        term = scanner.nextLine();
+        if (!cards.containsKey(term)) {
+          break;
         } else {
-            System.out.printf("Wrong answer. The correct one is \"" + definition + "\".");
+          System.out.println("The card \"" + term + "\" already exists. Try again:");
         }
+      }
+
+      System.out.println("The definition of the card #" + cardCount + ":");
+      while (scanner.hasNext()) {
+        definition = scanner.nextLine();
+        if (!cards.containsValue(definition)) {
+          break;
+        } else {
+          System.out.println("The definition \"" + definition + "\" already exists. Try again:");
+        }
+      }
+
+      cards.putIfAbsent(term, definition);
+      cardCount++;
     }
+    return cards;
+  }
+
+  static void askForDefinition(LinkedHashMap<String, String> cards) {
+    for (var entry : cards.entrySet()) {
+      System.out.println("Print the definition of \"" + entry.getKey() + "\":");
+      String answer = new Scanner(System.in).nextLine();
+      String key = entry.getKey();
+      if (answer.equals(entry.getValue())) {
+        System.out.println("Correct answer.");
+      } else {
+        if (cards.containsValue(answer)) {
+          System.out.println("Wrong answer. The correct one is \"" + entry.getValue() + "\"," +
+                  " you've just written the definition of \"" + getKey(cards, answer) + "\".");
+        } else {
+          System.out.println("Wrong answer. The correct one is \"" + entry.getValue() + "\".");
+        }
+      }
+    }
+  }
+
+  public static String getKey(Map<String, String> map, String value) {
+    for (var entry : map.entrySet()) {
+      if (entry.getValue().equals(value)) {
+        return entry.getKey();
+      }
+    }
+    return null;
+  }
 }
