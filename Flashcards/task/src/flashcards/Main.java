@@ -6,9 +6,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Scanner;
 
 public class Main {
@@ -17,28 +20,23 @@ public class Main {
   }
 
   static void runApplication() {
-    Map<String, String> cards = createCardMap();
-    Map<String, Integer> hardestCards = createHardestCardMap();
+    Map<Card, Integer> cards = new HashMap<>();
+    List<String> hardestTerms = new ArrayList<>();
     List<String> logs = createLogList();
 
     while (true) {
       String action = askForAction(logs);
-      executeAction(action, cards, logs, hardestCards);
+      executeAction(action, cards, logs, hardestTerms);
     }
-  }
-
-  private static Map<String, Integer> createHardestCardMap() {
-
-    return new HashMap<>();
   }
 
   static String askForAction(List<String> logs) {
     String output;
-    List<String> actions = Arrays.asList("add", "remove", "import", "export", "ask", "l", "log", "hardest card", "exit");
+    List<String> actions = Arrays.asList("add", "remove", "import", "export", "ask", "exit", "log", "hardest card", "reset stats");
     boolean isAction;
     String action;
     Scanner scanner = new Scanner(System.in);
-    output = "Input the action (add, remove, import, export, ask, l, log, hardest card, exit):";
+    output = "\nInput the action (add, remove, import, export, ask, exit, log, hardest card, reset stats):";
     System.out.println(output);
     logs.add(output);
     do {
@@ -48,7 +46,7 @@ public class Main {
       logs.add(input);
       isAction = actions.contains(action);
       if (!isAction) {
-        output = "Please input a valid action (add, remove, import, export, ask, l, log, hardest card, exit):";
+        output = "\nPlease input a valid action (add, remove, import, export, ask, exit, log, hardest card, reset stats):";
         System.out.println(output);
         logs.add(output);
       }
@@ -57,7 +55,7 @@ public class Main {
     return action;
   }
 
-  static void executeAction(String action, Map<String, String> cards, List<String> logs, Map<String, Integer> hardestCards) {
+  static void executeAction(String action, Map<Card, Integer> cards, List<String> logs, List<String> hardestTerms) {
     String output;
     switch (action) {
       case "add":
@@ -74,24 +72,9 @@ public class Main {
         break;
       case "ask":
         if (cards.size() > 0) {
-          askForDefinition(determineAskCount(cards, logs), cards, logs);
+          askForDefinition(determineAskCount(logs), cards, logs);
         } else {
           output = "The cards set is empty!\n";
-          System.out.println(output);
-          logs.add(output);
-        }
-        break;
-      case "l":
-        System.out.println(cards);
-        break;
-      case "log":
-        saveLog(logs);
-        break;
-      case "hardest card":
-        if (hardestCards.size() > 0) {
-          showHardestCard(logs);
-        } else {
-          output = "There are no cards with errors.\n";
           System.out.println(output);
           logs.add(output);
         }
@@ -102,21 +85,61 @@ public class Main {
         logs.add(output);
         System.exit(0);
         break;
+      case "log":
+        saveLog(logs);
+        break;
+      case "hardest card":
+        showHardestCard(cards, hardestTerms, logs);
+        break;
+      case "reset stats":
+        cards.replaceAll((c, v) -> 0);
+        output = "Card statistics has been reset.";
+        System.out.println(output);
+        logs.add(output);
+        break;
     }
   }
 
-  private static void showHardestCard(List<String> logs) {
+  public static void showHardestCard(Map<Card, Integer> cards, List<String> hardestTerms, List<String> logs) {
 
+    if (cards.size() == 0) {
+      String output = "There are no cards with errors.";
+      System.out.println(output);
+      logs.add(output);
+    } else {
+      int maxValue = (Collections.max(cards.values()));
+
+      if (maxValue == 0) {
+        String output = "There are no cards with errors.";
+        System.out.println(output);
+        logs.add(output);
+      } else {
+        for (Map.Entry<Card, Integer> entry : cards.entrySet()) {
+
+          if (entry.getValue() == maxValue) {
+            hardestTerms.add(entry.getKey().getTerm());
+          }
+        }
+        if (hardestTerms.size() == 1) {
+          System.out.println("The hardest cards is \"" + hardestTerms.get(0) + "\". You have " + maxValue + " errors answering it.");
+
+        } else {
+          System.out.print("The hardest cards are ");
+
+          for (int i = 0; i < hardestTerms.size() - 1; i++) {
+            System.out.print("\"" + hardestTerms.get(i) + "\", ");
+          }
+          System.out.print("\"" + hardestTerms.get(hardestTerms.size() - 1) + "\". ");
+
+          System.out.println("You have " + maxValue + " errors answering them.\n");
+        }
+      }
+      hardestTerms.clear();
+    }
   }
 
   static List<String> createLogList() {
 
-//    List<String> logs = new ArrayList<>();
-//    logs.add("Justin");
-//    logs.add("Helen");
-//    logs.add("Joshua");
-//
-//    return logs;
     return new ArrayList<>();
   }
 
@@ -137,7 +160,7 @@ public class Main {
         writer.write(log + "\n");
       }
 
-      output = "The log has been saved.";
+      output = "The log has been saved.\n";
       System.out.println(output);
       logs.add(output);
     } catch (IOException e) {
@@ -145,7 +168,7 @@ public class Main {
     }
   }
 
-  static void exportCards(Map<String, String> cards, List<String> logs) {
+  static void exportCards(Map<Card, Integer> cards, List<String> logs) {
     String output;
     String input;
     Scanner scanner = new Scanner(System.in);
@@ -156,16 +179,10 @@ public class Main {
     logs.add(input);
     File file = new File(input);
 
-//    for (var entry : map.entrySet()) {
-//      if (entry.getValue().equals(value)) {
-//        return entry.getKey();
-//      }
-//    }
-
     try (FileWriter writer = new FileWriter(file)) {
       int counter = 0;
-      for (var entry : cards.entrySet()) {
-        writer.write(entry.getKey() + "=" + entry.getValue() + "\n");
+      for (Card card : cards.keySet()) {
+        writer.write(card.getTerm() + ";" + card.getDefinition() + "=" + cards.get(card) + "\n");
         counter++;
       }
       output = counter + " cards have been saved.";
@@ -176,7 +193,7 @@ public class Main {
     }
   }
 
-  static void importCards(Map<String, String> cards, List<String> logs) {
+  static void importCards(Map<Card, Integer> cards, List<String> logs) {
     String output;
     String input;
     Scanner scannerInput = new Scanner(System.in);
@@ -193,10 +210,20 @@ public class Main {
       while (scanner.hasNextLine()) {
         String entrySetString = scanner.nextLine();
         String[] entrySet = entrySetString.split("=");
-        cards.put(entrySet[0], entrySet[1]);
+        Integer errorCount = Integer.parseInt(entrySet[1]);
+
+        String[] card = entrySet[0].split(";");
+        String term = card[0];
+        String definition = card[1];
+
+        if (containsTerm(term, cards)) {
+          cards.remove(new Card(term, getDefinition(term, cards)));
+        }
+
+        cards.put(new Card(term, definition), errorCount);
         counter++;
       }
-      output = counter + " cards have been loaded.";
+      output = counter + " cards have been loaded.\n";
       System.out.println(output);
       logs.add(output);
     } catch (FileNotFoundException e) {
@@ -207,18 +234,43 @@ public class Main {
 
   }
 
-  static Map<String, String> createCardMap() {
-
-//    Map<String, String> cardMap = new HashMap<>();
-//    cardMap.put("1", "a");
-//    cardMap.put("2", "b");
-//    cardMap.put("3", "c");
-//
-//    return cardMap;
-    return new HashMap<>();
+  public static boolean containsTerm(String term, Map<Card, Integer> cards) {
+    for (Card card : cards.keySet()) {
+      if (term.equals(card.getTerm())) {
+        return true;
+      }
+    }
+    return false;
   }
 
-  static void removeCard(Map<String, String> cards, List<String> logs) {
+  public static boolean containsDefinition(String definition, Map<Card, Integer> cards) {
+    for (Card card : cards.keySet()) {
+      if (definition.equals(card.getDefinition())) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public static String getTerm(String definition, Map<Card, Integer> cards) {
+    for (Card card : cards.keySet()) {
+      if (definition.equals(card.getDefinition())) {
+        return card.getTerm();
+      }
+    }
+    return "";
+  }
+
+  public static String getDefinition(String term, Map<Card, Integer> cards) {
+    for (Card card : cards.keySet()) {
+      if (term.equals(card.getTerm())) {
+        return card.getDefinition();
+      }
+    }
+    return "";
+  }
+
+  static void removeCard(Map<Card, Integer> cards, List<String> logs) {
     String output;
     String input;
     Scanner scanner = new Scanner(System.in);
@@ -229,17 +281,18 @@ public class Main {
     term = scanner.nextLine();
     input = term;
     logs.add(input);
-    if (cards.containsKey(term)) {
-      cards.remove(term);
-      output = "The card has been removed.\n";
-      System.out.println(output);
-      logs.add(output);
+
+    if (containsTerm(term, cards)) {
+      cards.remove(new Card(term, getDefinition(term, cards)));
+      output = "The card has been removed.";
     } else {
-      System.out.printf("Can't remove \"%s\": there is no such card.\n\n", term);
+      output = "Can't remove \"" + term + "\": there is no such card.";
     }
+    System.out.println(output);
+    logs.add(output);
   }
 
-  static void createCard(Map<String, String> cards, List<String> logs) {
+  static void createCard(Map<Card, Integer> cards, List<String> logs) {
     String output;
     String input;
     Scanner scanner = new Scanner(System.in);
@@ -252,8 +305,10 @@ public class Main {
     term = scanner.nextLine();
     input = term;
     logs.add(input);
-    if (cards.containsKey(term)) {
-      System.out.printf("The card \"%s\" already exists.\n\n", term);
+    if (containsTerm(term, cards)) {
+      output = "The card \"" + term +"\" already exists.";
+      System.out.println(output);
+      logs.add(output);
       return;
     }
 
@@ -263,16 +318,21 @@ public class Main {
     definition = scanner.nextLine();
     input = definition;
     logs.add(input);
-    if (cards.containsValue(definition)) {
-      System.out.printf("The definition \"%s\" already exists.\n\n", definition);
+    if (containsDefinition(definition, cards)) {
+      output = "The definition \"" + definition + "\" already exists.";
+      System.out.println(output);
+      logs.add(output);
       return;
     }
 
-    cards.putIfAbsent(term, definition);
-    System.out.printf("The pair (\"%s\":\"%s\") has been added.\n\n", term, definition);
+    Card card = new Card(term, definition);
+    cards.put(card, 0);
+    output = "The pair (\"" + term + "\":\"" + definition + "\") has been added.";
+    System.out.println(output);
+    logs.add(output);
   }
 
-  static int determineAskCount(Map<String, String> cards, List<String> logs) {
+  static int determineAskCount(List<String> logs) {
     String output;
     String input;
     Scanner scanner = new Scanner(System.in);
@@ -280,153 +340,82 @@ public class Main {
     output = "How many times to ask?";
     System.out.println(output);
     logs.add(output);
-//    while (scanner.hasNext()) {
-//      if (scanner.hasNextInt()) {
     askCount = scanner.nextInt();
     input = String.valueOf(askCount);
     logs.add(input);
-//        if (askCount > 0 && askCount <= cards.size()) {
     return askCount;
-//        }
-//      } else {
-//        scanner.next();
-//      }
-//      System.out.printf("Please input the valid number from 1 to %s:\n", cards.size());
-//    }
-//    return -1;
   }
 
-  static void askForDefinition(int askCount, Map<String, String> cards, List<String> logs) {
+  static void askForDefinition(int askCount, Map<Card, Integer> cards, List<String> logs) {
     String output;
     String input;
 
     for (int i = 0; i < askCount; i++) {
 
-//      for (Map.Entry<String, String> entry : cards.entrySet()) {
+      Iterator<Map.Entry<Card, Integer>> iterator = cards.entrySet().iterator();
+      Map.Entry<Card, Integer> entry = iterator.next();
 
-      Map.Entry<String, String> entry = cards.entrySet().iterator().next();
+      Card c = entry.getKey();
 
-      output = "Print the definition of \"" + entry.getKey() + "\":";
+      output = "Print the definition of \"" + c.getTerm() + "\":";
       System.out.println(output);
       logs.add(output);
       String answer = new Scanner(System.in).nextLine();
       input = answer;
       logs.add(input);
 
-      if (answer.equals(entry.getValue())) {
+      if (answer.equals(c.getDefinition())) {
         output = "Correct answer.";
         System.out.println(output);
         logs.add(output);
       } else {
-        if (cards.containsValue(answer)) {
-          output = "Wrong answer. The correct one is \"" + entry.getValue() + "\"," +
-                  " you've just written the definition of \"" + getKey(cards, answer) + "\".";
-          System.out.println(output);
-          logs.add(output);
+        if (containsDefinition(answer, cards)) {
+          output = "Wrong answer. (The correct one is \"" + c.getDefinition() +
+                  "\", you've just written the definition of \"" + getTerm(answer, cards) + "\".";
         } else {
-          output = "Wrong answer. The correct one is \"" + entry.getValue() + "\".";
-          System.out.println(output);
-          logs.add(output);
+          output = "Wrong answer. The correct one is \"" + c.getDefinition() + "\".";
         }
-      }
-
-//      }
-    }
-  }
-
-  public static String getKey(Map<String, String> map, String value) {
-    for (var entry : map.entrySet()) {
-      if (entry.getValue().equals(value)) {
-        return entry.getKey();
+        System.out.println(output);
+        logs.add(output);
+        cards.put(c, cards.get(c) + 1);
       }
     }
-    return null;
   }
 }
 
+class Card {
+  private final String term;
+  private final String definition;
 
-//  static void playGame() {
-//    int numberOfCards = chooseNumberOfCards();
-//    HashMap<String, String> cards = createCardMap(numberOfCards);
-//    askForDefinition(cards);
-//  }
-//
-//  static int chooseNumberOfCards() {
-//    Scanner scanner = new Scanner(System.in);
-//    System.out.println("Input the number of cards:");
-//    while (scanner.hasNext()) {
-//      if (scanner.hasNextInt()) {
-//        int input = scanner.nextInt();
-//        if (input > 0 && input < 10) {
-//          return input;
-//        }
-//      } else {
-//        scanner.next();
-//      }
-//      System.out.println("Please input the number of cards from 1 to 10:");
-//    }
-//    return -1;
-//  }
-//
-//  static class Card {
-//    String term;
-//    String definition;
-//
-//    public Card(String term, String definition) {
-//      this.term = term;
-//      this.definition = definition;
-//    }
-//
-//    String getTerm() {
-//      return term;
-//    }
-//
-//    String getDefinition() {
-//      return definition;
-//    }
-//
-//    void setTerm(String term) {
-//      this.term = term;
-//    }
-//
-//    void setDefinition(String definition) {
-//      this.definition = definition;
-//    }
-//  }
+  public Card(String term, String definition) {
+    this.term = term;
+    this.definition = definition;
+  }
+
+  public String getTerm() {
+    return term;
+  }
+
+  public String getDefinition() {
+    return definition;
+  }
 
 
-//  static HashMap<String, String> createCardMap(int numberOfCards) {
-//    int cardCount = 1;
-//    HashMap<String, String> cards = new HashMap<>();
-//
-//    for (int i = 0; i < numberOfCards; i++) {
-//      Scanner scanner = new Scanner(System.in);
-//      String term = "";
-//      String definition = "";
-//
-//      System.out.println("The card #" + cardCount + ":");
-//      while (scanner.hasNext()) {
-//        term = scanner.nextLine();
-//        if (!cards.containsKey(term)) {
-//          break;
-//        } else {
-//          System.out.println("The card \"" + term + "\" already exists. Try again:");
-//        }
-//      }
-//
-//      System.out.println("The definition of the card #" + cardCount + ":");
-//      while (scanner.hasNext()) {
-//        definition = scanner.nextLine();
-//        if (!cards.containsValue(definition)) {
-//          break;
-//        } else {
-//          System.out.println("The definition \"" + definition + "\" already exists. Try again:");
-//        }
-//      }
-//
-//      cards.putIfAbsent(term, definition);
-//      cardCount++;
-//    }
-//    return cards;
-//  }
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
 
+    Card card = (Card) o;
+
+    if (!term.equals(card.term)) return false;
+    return definition.equals(card.definition);
+  }
+
+  @Override
+  public int hashCode() {
+    int result = term.hashCode();
+    result = 31 * result + definition.hashCode();
+    return result;
+  }
+}
