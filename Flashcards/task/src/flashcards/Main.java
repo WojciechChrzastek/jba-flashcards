@@ -15,18 +15,35 @@ import java.util.Scanner;
 
 public class Main {
   public static void main(String[] args) {
-    runApplication();
+    runApplication(args);
   }
 
-  static void runApplication() {
+  static void runApplication(String[] args) {
     Map<Card, Integer> cards = new HashMap<>();
     List<String> hardestTerms = new ArrayList<>();
     List<String> logs = createLogList();
-    String action = "";
+    boolean isExport = false;
+    List<String> argsList = Arrays.asList(args);
 
+    for (String s : argsList) {
+      switch (s) {
+        case "-import": {
+          importCardsByParam(cards, logs, argsList.get(argsList.indexOf(s) + 1));
+          break;
+        }
+        case "-export": {
+          isExport = true;
+          break;
+        }
+        default:
+          break;
+      }
+    }
+
+    String action = "";
     while (!action.equals("exit")) {
       action = askForAction(logs);
-      executeAction(action, cards, logs, hardestTerms);
+      executeAction(action, cards, logs, hardestTerms, isExport, argsList);
     }
   }
 
@@ -55,7 +72,8 @@ public class Main {
     return action;
   }
 
-  static void executeAction(String action, Map<Card, Integer> cards, List<String> logs, List<String> hardestTerms) {
+  static void executeAction(String action, Map<Card, Integer> cards, List<String> logs, List<String> hardestTerms,
+                            boolean isExport, List<String> argsList) {
     String output;
     switch (action) {
       case "add":
@@ -65,10 +83,10 @@ public class Main {
         removeCard(cards, logs);
         break;
       case "import":
-        importCards(cards, logs);
+        importCardsByUser(cards, logs);
         break;
       case "export":
-        exportCards(cards, logs);
+        exportCardsByUser(cards, logs);
         break;
       case "ask":
         if (cards.size() > 0) {
@@ -83,6 +101,9 @@ public class Main {
         output = "Bye bye!";
         System.out.println(output);
         logs.add(output);
+        if (isExport) {
+          exportCardsByParam(cards, logs, argsList.get(argsList.lastIndexOf("-export") + 1));
+        }
         System.exit(0);
         break;
       case "log":
@@ -143,7 +164,6 @@ public class Main {
     return new ArrayList<>();
   }
 
-
   static void saveLog(List<String> logs) {
     String output;
     Scanner scanner = new Scanner(System.in);
@@ -168,16 +188,13 @@ public class Main {
     }
   }
 
-  static void exportCards(Map<Card, Integer> cards, List<String> logs) {
+  static void exportCardsByParam(Map<Card, Integer> cards, List<String> logs, String path) {
+    exportCards(cards, logs, path);
+  }
+
+  private static void exportCards(Map<Card, Integer> cards, List<String> logs, String path) {
     String output;
-    String input;
-    Scanner scanner = new Scanner(System.in);
-    output = "File name:";
-    System.out.println(output);
-    logs.add(output);
-    input = scanner.next();
-    logs.add(input);
-    File file = new File(input);
+    File file = new File(path);
 
     try (FileWriter writer = new FileWriter(file)) {
       int counter = 0;
@@ -193,16 +210,24 @@ public class Main {
     }
   }
 
-  static void importCards(Map<Card, Integer> cards, List<String> logs) {
+  static void exportCardsByUser(Map<Card, Integer> cards, List<String> logs) {
     String output;
     String input;
-    Scanner scannerInput = new Scanner(System.in);
+    Scanner scanner = new Scanner(System.in);
     output = "File name:";
     System.out.println(output);
     logs.add(output);
-    String path = scannerInput.next();
-    input = path;
+    input = scanner.next();
     logs.add(input);
+    exportCards(cards, logs, input);
+  }
+
+  static void importCardsByParam(Map<Card, Integer> cards, List<String> logs, String path) {
+    importCards(cards, logs, path);
+  }
+
+  private static void importCards(Map<Card, Integer> cards, List<String> logs, String path) {
+    String output;
     File file = new File(path);
     int counter = 0;
 
@@ -223,7 +248,7 @@ public class Main {
         cards.put(new Card(term, definition), errorCount);
         counter++;
       }
-      output = counter + " cards have been loaded.\n";
+      output = counter + " cards have been loaded.";
       System.out.println(output);
       logs.add(output);
     } catch (FileNotFoundException e) {
@@ -231,7 +256,19 @@ public class Main {
       System.out.println(output);
       logs.add(output);
     }
+  }
 
+  static void importCardsByUser(Map<Card, Integer> cards, List<String> logs) {
+    String output;
+    String input;
+    Scanner scannerInput = new Scanner(System.in);
+    output = "File name:";
+    System.out.println(output);
+    logs.add(output);
+    String path = scannerInput.next();
+    input = path;
+    logs.add(input);
+    importCards(cards, logs, path);
   }
 
   public static boolean containsTerm(String term, Map<Card, Integer> cards) {
@@ -306,7 +343,7 @@ public class Main {
     input = term;
     logs.add(input);
     if (containsTerm(term, cards)) {
-      output = "The card \"" + term +"\" already exists.";
+      output = "The card \"" + term + "\" already exists.";
       System.out.println(output);
       logs.add(output);
       return;
