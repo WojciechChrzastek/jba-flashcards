@@ -11,7 +11,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Scanner;
 
 public class Main {
@@ -23,9 +22,10 @@ public class Main {
     Map<Card, Integer> cards = new HashMap<>();
     List<String> hardestTerms = new ArrayList<>();
     List<String> logs = createLogList();
+    String action = "";
 
-    while (true) {
-      String action = askForAction(logs);
+    while (!action.equals("exit")) {
+      action = askForAction(logs);
       executeAction(action, cards, logs, hardestTerms);
     }
   }
@@ -121,7 +121,7 @@ public class Main {
           }
         }
         if (hardestTerms.size() == 1) {
-          System.out.println("The hardest cards is \"" + hardestTerms.get(0) + "\". You have " + maxValue + " errors answering it.");
+          System.out.println("The hardest card is \"" + hardestTerms.get(0) + "\". You have " + maxValue + " errors answering it.");
 
         } else {
           System.out.print("The hardest cards are ");
